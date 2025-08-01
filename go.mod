@@ -1,6 +1,8 @@
 module github.com/DnsUnlock/DnsNode
 
-go 1.22.5
+go 1.24.2
+
+toolchain go1.24.4
 
 require (
 	github.com/gophertool/tool v0.0.8-20250724
