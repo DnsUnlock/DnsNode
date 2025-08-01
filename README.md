@@ -48,91 +48,55 @@ sudo ./DnsNode -config=config.yaml
 
 - `-config`: Path to configuration file (default: config.yaml)
 - `-port`: DNS server port (default: 53)
-- `-debug`: Enable debug mode
+- `-debug`: Enable debug mode (default: false)
 
 ## Configuration
 
-The server can be configured using a YAML file. See `config.yaml` for an example.
+The server uses a YAML configuration file. See `config.yaml` for an example configuration.
 
-### Enabling Encrypted DNS
+### Configuration Options
 
-To enable DoT and/or DoH:
+#### Server Settings
+- `server_name`: DNS server identifier
+- `port`: DNS server port (default: 53)
+- `debug`: Enable debug logging
+- `max_concurrent_queries`: Maximum concurrent DNS queries
 
-1. Obtain TLS certificates from a Certificate Authority (CA)
-2. Place the certificate and key files at the specified paths
-3. Set `dot.enabled: true` and/or `doh.enabled: true` in the configuration
+#### Remote API
+- `enabled`: Enable/disable remote resolution
+- `url`: Remote API endpoint for fetching mappings
+- `timeout`: Request timeout
+- `refresh_interval`: How often to refresh mappings
+- `headers`: Custom headers for API authentication
 
-### Using Encrypted Upstream DNS
+#### Cache Settings
+- `enabled`: Enable/disable caching
+- `max_size`: Maximum cache entries
+- `default_ttl`: Default time-to-live for cached entries
+- `cleanup_interval`: Cache cleanup frequency
+- `path`: BuntDB storage path (":memory:" for in-memory, file path for persistent)
+- `sync_policy`: Disk sync policy for persistent cache
 
-To use DoT or DoH for upstream queries:
+#### System DNS
+- `enabled`: Enable/disable system DNS fallback
+- `servers`: List of upstream DNS servers
+- `timeout`: Query timeout
+- `use_tcp`: Use TCP instead of UDP
+- `use_dot`: Use DNS-over-TLS for upstream
+- `use_doh`: Use DNS-over-HTTPS for upstream
 
-1. For DoT: Set `system_dns.use_dot: true` and use servers like `1.1.1.1:853`
-2. For DoH: Set `system_dns.use_doh: true` and use URLs like `https://cloudflare-dns.com/dns-query`
+#### DNS-over-TLS (DoT)
+- `enabled`: Enable DoT server
+- `port`: DoT server port (default: 853)
+- `cert_file`: TLS certificate file path
+- `key_file`: TLS key file path
 
-Example configuration:
-
-```yaml
-# Server port
-port: 53
-
-# Enable debug mode
-debug: false
-
-# Maximum concurrent queries
-max_concurrent_queries: 1000
-
-# Remote API configuration
-remote_api:
-  enabled: true
-  url: "https://example.com/api/dns-mappings"
-  timeout: 5s
-  refresh_interval: 5m
-  headers:
-    X-API-Key: "your-api-key"
-
-# Cache configuration
-cache:
-  enabled: true
-  max_size: 10000
-  default_ttl: 5m
-  cleanup_interval: 10m
-  path: ":memory:"        # BuntDB path - use ":memory:" for in-memory cache or file path for persistent cache
-  sync_policy: "everysecond"  # Sync policy: "always", "everysecond", or "never"
-
-# System DNS configuration (fallback)
-system_dns:
-  enabled: true
-  servers:
-    - "8.8.8.8:53"
-    - "8.8.4.4:53"
-    - "1.1.1.1:53"
-  timeout: 3s
-  use_tcp: false
-  use_dot: false  # Use DNS-over-TLS for upstream
-  use_doh: false  # Use DNS-over-HTTPS for upstream
-
-# DNS-over-TLS configuration
-dot:
-  enabled: false
-  port: 853
-  cert_file: "cert.pem"
-  key_file: "key.pem"
-
-# DNS-over-HTTPS configuration
-doh:
-  enabled: false
-  port: 443
-  path: "/dns-query"
-  cert_file: "cert.pem"
-  key_file: "key.pem"
-
-# TLS certificate configuration
-tls:
-  auto_generate: true
-  domains:
-    - "localhost"
-    - "dns.example.com"
-```
+#### DNS-over-HTTPS (DoH)
+- `enabled`: Enable DoH server
+- `port`: DoH server port (default: 443)
+- `path`: HTTP path for DNS queries (default: /dns-query)
+- `cert_file`: TLS certificate file path
+- `key_file`: TLS key file path
 
 ## Remote API Format
 
@@ -140,7 +104,7 @@ The remote API should return JSON in the following format:
 
 ```json
 {
-  "mappings": [
+  "domains": [
     {
       "domain": "example.com",
       "ips": ["192.168.1.1", "192.168.1.2"],
@@ -198,58 +162,43 @@ DnsNode/
 
 Test the DNS server using various tools:
 
-### Standard DNS (UDP/TCP)
+### Using dig
 ```bash
-# Test A record
+# Standard DNS query
 dig @localhost example.com
 
-# Test AAAA record
-dig @localhost example.com AAAA
+# DNS-over-TLS query
+dig @localhost +tls example.com
 
-# Test with TCP
-dig @localhost +tcp example.com
+# Specify port
+dig @localhost -p 53 example.com
 ```
 
-### DNS-over-TLS (DoT)
+### Using nslookup
 ```bash
-# Using kdig (from knot-dnsutils)
-kdig -d @localhost +tls example.com
-
-# Using stubby
-stubby -C "upstream_recursive_servers:
-  - address_data: 127.0.0.1
-    tls_port: 853"
+nslookup example.com localhost
 ```
 
-### DNS-over-HTTPS (DoH)
+### Using curl (for DoH)
 ```bash
-# Using curl
+# GET method
 curl -H "accept: application/dns-message" \
-     "https://localhost/dns-query?dns=$(dig +short example.com A | base64 -w0)"
+  "https://localhost:443/dns-query?dns=q80BAAABAAAAAAAAA3d3dwdleGFtcGxlA2NvbQAAAQAB"
 
-# Using dog (DNS client with DoH support)
-dog example.com --https @https://localhost/dns-query
+# POST method
+curl -H "accept: application/dns-message" \
+  -H "content-type: application/dns-message" \
+  --data-binary @query.bin \
+  https://localhost:443/dns-query
 ```
 
-## Requirements
+## Examples
 
-- Go 1.19 or higher
-- Root/Administrator privileges (to bind to port 53)
-
-## Dependencies
-
-- `github.com/miekg/dns`: DNS library
-- `github.com/gophertool/tool`: BuntDB-based cache implementation
-- `gopkg.in/yaml.v3`: YAML configuration support
-
-## BuntDB Cache Examples
-
-See the `examples/` directory for comprehensive BuntDB cache usage examples:
-
-- **Basic Usage**: `buntdb-cache-example.go` - Basic cache operations, TTL, persistence
-- **DNS Integration**: `dns-cache-test.go` - DNS-specific cache testing
-- **Monitoring**: `cache-monitor.go` - Cache performance monitoring and debugging
-- **Configurations**: `cache-configs.yaml` - Various cache configuration examples
+The `examples/` directory contains various usage examples:
+- **buntdb-cache-example.go**: Basic cache operations
+- **dns-cache-test.go**: DNS-specific caching scenarios
+- **cache-monitor.go**: Real-time cache monitoring
+- **cache-configs.yaml**: Sample configuration files
 
 Run examples:
 ```bash
