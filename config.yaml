@@ -1,0 +1,87 @@
+# DNS 服务器配置
+
+# 服务器名称（用于日志和版本查询中的标识）
+server_name: "DnsNode"
+
+# 服务器端口
+port: 53
+
+# 启用调试模式
+debug: true
+
+# 最大并发查询数
+max_concurrent_queries: 1000
+
+# 远程 API 配置
+remote_api:
+  enabled: true
+  # 主要的 WebSocket URL，用于实时获取域名到 IP 的映射
+  ws_url: "ws://example.com/api/dns-mappings"
+  # WebSocket 连接失败时的备用 HTTP URL
+  http_url: "https://example.com/api/dns-mappings"
+  # 请求超时时间
+  timeout: 5s
+  # 获取新映射的刷新间隔
+  refresh_interval: 5m
+  # 认证头
+  headers:
+    Authorization: "Bearer your-auth-token"
+    # X-API-Key: "your-api-key"
+
+# 缓存配置（使用 BuntDB）
+cache:
+  enabled: true
+  # 最大缓存条目数
+  max_size: 10000
+  # 缓存条目的默认 TTL
+  default_ttl: 5m
+  # 缓存清理间隔
+  cleanup_interval: 10m
+  # BuntDB 存储路径：
+  # - ":memory:" - 使用内存存储，重启后缓存丢失，性能最佳
+  # - "./dns-cache.db" - 使用文件存储，缓存持久化，重启后保留
+  # - "/var/lib/DnsNode/cache.db" - 生产环境建议使用绝对路径
+  path: "./dns-cache.db"
+  # 同步策略："always"、"everysecond" 或 "never"
+  # - "always"：每次写入后执行 fsync（最慢，最持久）
+  # - "everysecond"：每秒执行一次 fsync（默认，平衡性好）  
+  # - "never"：让操作系统处理同步（最快，持久性最差）
+  # 注意：sync_policy 仅对文件存储有效，内存存储会忽略此设置
+  sync_policy: "everysecond"
+
+# 系统 DNS 配置（备用）
+system_dns:
+  enabled: true
+  # 上游 DNS 服务器
+  servers:
+    - "8.8.8.8:53"
+    - "8.8.4.4:53"
+    - "1.1.1.1:53"
+    - "1.0.0.1:53"
+  # 查询超时时间
+  timeout: 3s
+  # 使用 TCP 而不是 UDP
+  use_tcp: false
+  # 上游查询使用 DNS-over-TLS
+  use_dot: false
+  # 上游查询使用 DNS-over-HTTPS
+  use_doh: false
+
+# DNS-over-TLS 配置
+dot:
+  enabled: false
+  port: 853
+  cert_file: "cert.pem"
+  key_file: "key.pem"
+
+# DNS-over-HTTPS 配置
+doh:
+  enabled: false
+  port: 443
+  path: "/dns-query"
+  cert_file: "cert.pem"
+  key_file: "key.pem"
+
+# TLS 证书配置
+# 注意：必须提供 TLS 证书 - 不支持自动生成
+# 在 dot/doh 部分配置 cert_file 和 key_file 路径
