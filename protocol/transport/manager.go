@@ -21,6 +21,20 @@ const (
 	TransportHTTP
 )
 
+// String 返回传输类型的字符串表示
+func (t TransportType) String() string {
+	switch t {
+	case TransportWebSocket:
+		return "websocket"
+	case TransportGRPC:
+		return "grpc"
+	case TransportHTTP:
+		return "http"
+	default:
+		return "auto"
+	}
+}
+
 // ManagerConfig 连接管理器配置
 type ManagerConfig struct {
 	WSAddress           string        // WebSocket 地址
