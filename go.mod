@@ -1,19 +1,16 @@
 module github.com/DnsUnlock/DnsNode
 
-go 1.24.2
-
-toolchain go1.24.4
+go 1.25.5
 
 require (
-	github.com/gophertool/tool v0.0.8-20250724
 	github.com/gorilla/websocket v1.5.3
 	github.com/miekg/dns v1.1.67
 	google.golang.org/grpc v1.58.3
-	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
 	github.com/golang/protobuf v1.5.4 // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/tidwall/btree v1.4.2 // indirect
 	github.com/tidwall/buntdb v1.3.2 // indirect
 	github.com/tidwall/gjson v1.14.3 // indirect
